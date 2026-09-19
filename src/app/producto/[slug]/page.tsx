@@ -31,12 +31,18 @@ export default function ProductoDetalle({ params }: { params: { slug: string } }
 
   useEffect(() => {
     async function cargarProducto() {
-      // Intentar buscar por slug o por id por retrocompatibilidad
-      const { data, error } = await supabase
-        .from('products')
-        .select(`*, product_images(url)`)
-        .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
-        .single();
+      // Validar si el parámetro es un UUID (ID) o un texto (slug)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.slug);
+      
+      let query = supabase.from('products').select(`*, product_images(url)`);
+      
+      if (isUUID) {
+        query = query.eq('id', params.slug);
+      } else {
+        query = query.eq('slug', params.slug);
+      }
+
+      const { data, error } = await query.single();
       
       if (data) {
         setProducto(data);
