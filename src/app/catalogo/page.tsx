@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 type Product = {
   id: string;
@@ -21,24 +22,28 @@ export default function CatalogoPage() {
   const { addToCart } = useCart();
 
   useEffect(() => {
-    async function fetchProductos() {
+    async function fetchProducts() {
       const { data, error } = await supabase
         .from('products')
         .select(`
           *,
-          product_images ( url )
+          product_images (
+            url
+          )
         `)
         .eq('is_active', true);
       
-      if (!error && data) {
+      if (data) {
         setProductos(data);
       }
       setCargando(false);
     }
-    fetchProductos();
+
+    fetchProducts();
   }, []);
 
-  const handleAgregarCarrito = (producto: Product, imageUrl?: string) => {
+  const handleAgregarCarrito = (e: React.MouseEvent, producto: Product, imageUrl?: string) => {
+    e.preventDefault(); // Evitar navegación de la tarjeta
     const finalPrice = producto.discount_price && producto.discount_price < producto.base_price 
       ? producto.discount_price 
       : producto.base_price;
@@ -65,13 +70,17 @@ export default function CatalogoPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-12 px-4">
-      <h1 className="font-serif text-4xl font-bold mb-8 text-center">Nuestro Catálogo</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h1 className="font-serif text-4xl text-primary font-bold mb-8">Nuestro Catálogo</h1>
       
       {cargando ? (
-        <p className="text-center text-secondary-text">Cargando productos...</p>
+        <div className="text-center py-20 text-gray-500">
+          <p>Cargando productos...</p>
+        </div>
       ) : productos.length === 0 ? (
-        <p className="text-center text-secondary-text">No hay productos disponibles por el momento. ¡Vuelve pronto!</p>
+        <div className="text-center py-20 glass-effect rounded-3xl">
+          <p className="text-gray-500 text-lg">No hay productos disponibles en este momento.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {productos.map(producto => {
@@ -79,7 +88,8 @@ export default function CatalogoPage() {
             const isAgotado = producto.stock !== undefined && producto.stock <= 0;
 
             return (
-              <div 
+              <Link 
+                href={`/producto/${(producto as any).slug || producto.id}`}
                 key={producto.id} 
                 className={`group relative glass-effect p-4 rounded-2xl flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${isAgotado ? 'opacity-70 grayscale-[50%]' : ''}`}
               >
@@ -114,7 +124,7 @@ export default function CatalogoPage() {
                 </div>
 
                 <div className="mt-auto relative z-10">
-                  <h3 className="font-medium text-lg mb-1 truncate">{producto.name}</h3>
+                  <h3 className="font-medium text-lg mb-1 truncate text-gray-900">{producto.name}</h3>
                   <div className="flex items-center gap-2 mb-4">
                     {producto.discount_price && producto.discount_price < producto.base_price ? (
                       <>
@@ -127,14 +137,14 @@ export default function CatalogoPage() {
                   </div>
                   
                   <button 
-                    onClick={() => handleAgregarCarrito(producto, imageUrl)}
+                    onClick={(e) => handleAgregarCarrito(e, producto, imageUrl)}
                     disabled={isAgotado}
-                    className={`w-full border-2 border-primary text-primary py-2 rounded-xl transition-colors font-medium ${isAgotado ? 'opacity-50 cursor-not-allowed border-gray-400 text-gray-500' : 'hover:bg-primary hover:text-white active:scale-95'}`}
+                    className={`w-full border-2 border-primary text-primary py-2 rounded-xl transition-colors font-medium ${isAgotado ? 'opacity-50 cursor-not-allowed border-gray-400 text-gray-500' : 'hover:bg-primary hover:text-white active:scale-95 bg-white shadow-sm'}`}
                   >
                     {isAgotado ? 'Sin Stock' : 'Agregar al Carrito'}
                   </button>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
