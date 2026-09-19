@@ -25,6 +25,7 @@ export default function ProductoDetalle({ params }: { params: { slug: string } }
   const [relacionados, setRelacionados] = useState<Product[]>([]);
   const [cargando, setCargando] = useState(true);
   const [imagenActual, setImagenActual] = useState(0);
+  const [zoom, setZoom] = useState(false);
   
   const { addToCart } = useCart();
   const WTS_NUMBER = "51926569490"; // Tu número
@@ -67,12 +68,12 @@ export default function ProductoDetalle({ params }: { params: { slug: string } }
 
   // Rotación automática de imágenes
   useEffect(() => {
-    if (!producto || !producto.product_images || producto.product_images.length <= 1) return;
+    if (!producto || !producto.product_images || producto.product_images.length <= 1 || zoom) return;
     const interval = setInterval(() => {
       setImagenActual(prev => (prev + 1) % producto.product_images!.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [producto]);
+  }, [producto, zoom]);
 
   const precioFinal = producto?.discount_price && producto.discount_price < producto.base_price 
     ? producto.discount_price 
@@ -104,6 +105,21 @@ export default function ProductoDetalle({ params }: { params: { slug: string } }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      {/* MODAL DE ZOOM FULLSCREEN */}
+      {zoom && imagenes.length > 0 && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setZoom(false)}
+        >
+          <img 
+            src={imagenes[imagenActual].url} 
+            alt="Zoom" 
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+          <p className="absolute bottom-8 text-white/60 text-sm bg-black/50 px-4 py-2 rounded-full">Toca en cualquier lugar para cerrar</p>
+        </div>
+      )}
+
       {/* Botón Volver */}
       <Link href="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary mb-8 font-medium">
         <ChevronLeft size={20} /> Volver al inicio
@@ -114,7 +130,7 @@ export default function ProductoDetalle({ params }: { params: { slug: string } }
           
           {/* GALERÍA DE IMÁGENES */}
           <div className="space-y-4">
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 group">
+            <div className="relative flex items-center justify-center min-h-[400px] md:h-[600px] rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 group">
               {isAgotado && (
                 <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center backdrop-blur-sm">
                   <span className="bg-red-600 text-white font-black text-2xl px-6 py-2 rounded shadow-lg transform -rotate-12 border-2 border-white">AGOTADO</span>
@@ -125,7 +141,8 @@ export default function ProductoDetalle({ params }: { params: { slug: string } }
                   <img 
                     src={imagenes[imagenActual].url} 
                     alt={producto.name} 
-                    className="w-full h-full object-contain md:object-cover"
+                    onClick={() => setZoom(true)}
+                    className="w-full h-full object-contain cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.02]"
                   />
                   {/* Botones de navegación manual */}
                   {imagenes.length > 1 && (
